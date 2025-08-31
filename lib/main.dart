@@ -61,6 +61,42 @@ class MyHomePage extends StatefulWidget {
 
 
 class _MyHomePageState extends State<MyHomePage> {
+  // Mode: null = normal, 'edit' = editing, 'delete' = deleting
+  String? _actionMode;
+
+  void _startActionMode(String mode) {
+    setState(() {
+      _actionMode = mode;
+    });
+  }
+
+  void _exitActionMode() {
+    setState(() {
+      _actionMode = null;
+    });
+  }
+
+  void _deleteLink(int index) {
+    setState(() {
+      _links.removeAt(index);
+    });
+    _saveLinks();
+    _exitActionMode();
+  }
+
+  void _editLink(int index) {
+    final entry = _links[index];
+    _showAddLinkDialog(
+      initial: entry,
+      onSave: (updated) {
+        setState(() {
+          _links[index] = updated;
+        });
+        _saveLinks();
+        _exitActionMode();
+      },
+    );
+  }
   List<LinkEntry> _links = [];
 
   @override
@@ -90,11 +126,11 @@ class _MyHomePageState extends State<MyHomePage> {
     _saveLinks();
   }
 
-  void _showAddLinkDialog() {
-    final nameController = TextEditingController();
-    final urlController = TextEditingController();
-    Color backgroundColor = Colors.blue;
-    Color foregroundColor = Colors.white;
+  void _showAddLinkDialog({LinkEntry? initial, void Function(LinkEntry)? onSave}) {
+    final nameController = TextEditingController(text: initial?.name ?? '');
+    final urlController = TextEditingController(text: initial?.url ?? '');
+    Color backgroundColor = initial?.backgroundColor ?? Colors.blue;
+    Color foregroundColor = initial?.foregroundColor ?? Colors.white;
 
     showDialog(
       context: context,
@@ -102,7 +138,7 @@ class _MyHomePageState extends State<MyHomePage> {
         return StatefulBuilder(
           builder: (context, setState) {
             return AlertDialog(
-              title: const Text('Add New Link'),
+              title: Text(initial == null ? 'Add New Link' : 'Edit Link'),
               content: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -172,16 +208,21 @@ class _MyHomePageState extends State<MyHomePage> {
                 ElevatedButton(
                   onPressed: () {
                     if (nameController.text.isNotEmpty && urlController.text.isNotEmpty) {
-                      _addLink(LinkEntry(
+                      final newEntry = LinkEntry(
                         name: nameController.text,
                         url: urlController.text,
                         backgroundColor: backgroundColor,
                         foregroundColor: foregroundColor,
-                      ));
+                      );
+                      if (onSave != null) {
+                        onSave(newEntry);
+                      } else {
+                        _addLink(newEntry);
+                      }
                       Navigator.of(context).pop();
                     }
                   },
-                  child: const Text('Add'),
+                  child: Text(initial == null ? 'Add' : 'Save'),
                 ),
               ],
             );
@@ -221,22 +262,47 @@ class _MyHomePageState extends State<MyHomePage> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  ..._links.map((entry) => Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 8.0),
-                        child: ElevatedButton(
-                          onPressed: () => _launchURL(entry.url),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: entry.backgroundColor,
-                            foregroundColor: entry.foregroundColor,
-                            elevation: 5,
-                          ),
-                          child: Text(entry.name),
+                  ..._links.asMap().entries.map((entry) {
+                    final idx = entry.key;
+                    final link = entry.value;
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 8.0),
+                      child: ElevatedButton(
+                        onPressed: () {
+                          if (_actionMode == 'delete') {
+                            _deleteLink(idx);
+                          } else if (_actionMode == 'edit') {
+                            _editLink(idx);
+                          } else {
+                            _launchURL(link.url);
+                          }
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: link.backgroundColor,
+                          foregroundColor: link.foregroundColor,
+                          elevation: 5,
+                          side: _actionMode != null
+                              ? const BorderSide(color: Colors.red, width: 2)
+                              : null,
                         ),
-                      )),
+                        child: Text(link.name),
+                      ),
+                    );
+                  }),
                   if (_links.isEmpty)
                     const Padding(
                       padding: EdgeInsets.all(16.0),
                       child: Text('No links yet. Tap + to add one!'),
+                    ),
+                  if (_actionMode != null)
+                    Padding(
+                      padding: const EdgeInsets.all(8.0),
+                      child: Text(
+                        _actionMode == 'edit'
+                            ? 'Tap a link to edit it'
+                            : 'Tap a link to delete it',
+                        style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+                      ),
                     ),
                 ],
               ),
@@ -244,9 +310,59 @@ class _MyHomePageState extends State<MyHomePage> {
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _showAddLinkDialog,
-        child: const Icon(Icons.add),
+      floatingActionButton: Stack(
+        children: [
+          // Add button (bottom right)
+          Align(
+            alignment: Alignment.bottomRight,
+            child: Padding(
+              padding: const EdgeInsets.only(bottom: 16.0, right: 16.0),
+              child: FloatingActionButton(
+                onPressed: () => _showAddLinkDialog(),
+                child: const Icon(Icons.add),
+              ),
+            ),
+          ),
+          // Edit/Delete menu (bottom left)
+          Align(
+            alignment: Alignment.bottomLeft,
+            child: Padding(
+              padding: const EdgeInsets.only(bottom: 16.0, left: 16.0),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  FloatingActionButton(
+                    heroTag: 'edit',
+                    mini: true,
+                    backgroundColor: _actionMode == 'edit' ? Colors.orange : null,
+                    onPressed: () {
+                      if (_actionMode == 'edit') {
+                        _exitActionMode();
+                      } else {
+                        _startActionMode('edit');
+                      }
+                    },
+                    child: const Icon(Icons.edit),
+                  ),
+                  const SizedBox(height: 8),
+                  FloatingActionButton(
+                    heroTag: 'delete',
+                    mini: true,
+                    backgroundColor: _actionMode == 'delete' ? Colors.red : null,
+                    onPressed: () {
+                      if (_actionMode == 'delete') {
+                        _exitActionMode();
+                      } else {
+                        _startActionMode('delete');
+                      }
+                    },
+                    child: const Icon(Icons.delete),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
