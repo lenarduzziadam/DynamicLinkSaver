@@ -99,87 +99,93 @@ class _MyHomePageState extends State<MyHomePage> {
     showDialog(
       context: context,
       builder: (context) {
-        return AlertDialog(
-          title: const Text('Add New Link'),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
-                  controller: nameController,
-                  decoration: const InputDecoration(labelText: 'Button Name'),
-                ),
-                TextField(
-                  controller: urlController,
-                  decoration: const InputDecoration(labelText: 'URL'),
-                ),
-                const SizedBox(height: 10),
-                Row(
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              title: const Text('Add New Link'),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Text('Background:'),
-                    const SizedBox(width: 8),
-                    GestureDetector(
-                      onTap: () async {
-                        Color? picked = await showDialog(
-                          context: context,
-                          builder: (context) => _ColorPickerDialog(initialColor: backgroundColor),
-                        );
-                        if (picked != null) {
-                          backgroundColor = picked;
-                          setState(() {});
-                        }
-                      },
-                      child: Container(
-                        width: 24,
-                        height: 24,
-                        color: backgroundColor,
-                        margin: const EdgeInsets.only(right: 8),
-                      ),
+                    TextField(
+                      controller: nameController,
+                      decoration: const InputDecoration(labelText: 'Button Name'),
                     ),
-                    const Text('Foreground:'),
-                    const SizedBox(width: 8),
-                    GestureDetector(
-                      onTap: () async {
-                        Color? picked = await showDialog(
-                          context: context,
-                          builder: (context) => _ColorPickerDialog(initialColor: foregroundColor),
-                        );
-                        if (picked != null) {
-                          foregroundColor = picked;
-                          setState(() {});
-                        }
-                      },
-                      child: Container(
-                        width: 24,
-                        height: 24,
-                        color: foregroundColor,
-                      ),
+                    TextField(
+                      controller: urlController,
+                      decoration: const InputDecoration(labelText: 'URL'),
+                    ),
+                    const SizedBox(height: 10),
+                    Row(
+                      children: [
+                        const Text('Background:'),
+                        const SizedBox(width: 8),
+                        GestureDetector(
+                          onTap: () async {
+                            Color? picked = await showDialog(
+                              context: context,
+                              builder: (context) => _ColorPickerDialog(initialColor: backgroundColor),
+                            );
+                            if (picked != null) {
+                              setState(() {
+                                backgroundColor = picked;
+                              });
+                            }
+                          },
+                          child: Container(
+                            width: 24,
+                            height: 24,
+                            color: backgroundColor,
+                            margin: const EdgeInsets.only(right: 8),
+                          ),
+                        ),
+                        const Text('Foreground:'),
+                        const SizedBox(width: 8),
+                        GestureDetector(
+                          onTap: () async {
+                            Color? picked = await showDialog(
+                              context: context,
+                              builder: (context) => _ColorPickerDialog(initialColor: foregroundColor),
+                            );
+                            if (picked != null) {
+                              setState(() {
+                                foregroundColor = picked;
+                              });
+                            }
+                          },
+                          child: Container(
+                            width: 24,
+                            height: 24,
+                            color: foregroundColor,
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text('Cancel'),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    if (nameController.text.isNotEmpty && urlController.text.isNotEmpty) {
+                      _addLink(LinkEntry(
+                        name: nameController.text,
+                        url: urlController.text,
+                        backgroundColor: backgroundColor,
+                        foregroundColor: foregroundColor,
+                      ));
+                      Navigator.of(context).pop();
+                    }
+                  },
+                  child: const Text('Add'),
+                ),
               ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Cancel'),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                if (nameController.text.isNotEmpty && urlController.text.isNotEmpty) {
-                  _addLink(LinkEntry(
-                    name: nameController.text,
-                    url: urlController.text,
-                    backgroundColor: backgroundColor,
-                    foregroundColor: foregroundColor,
-                  ));
-                  Navigator.of(context).pop();
-                }
-              },
-              child: const Text('Add'),
-            ),
-          ],
+            );
+          },
         );
       },
     );
