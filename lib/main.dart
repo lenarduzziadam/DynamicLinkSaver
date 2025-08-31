@@ -131,6 +131,7 @@ class _MyHomePageState extends State<MyHomePage> {
     final urlController = TextEditingController(text: initial?.url ?? '');
     Color backgroundColor = initial?.backgroundColor ?? Colors.blue;
     Color foregroundColor = initial?.foregroundColor ?? Colors.white;
+    final _formKey = GlobalKey<FormState>();
 
     showDialog(
       context: context,
@@ -140,64 +141,83 @@ class _MyHomePageState extends State<MyHomePage> {
             return AlertDialog(
               title: Text(initial == null ? 'Add New Link' : 'Edit Link'),
               content: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    TextField(
-                      controller: nameController,
-                      decoration: const InputDecoration(labelText: 'Button Name'),
-                    ),
-                    TextField(
-                      controller: urlController,
-                      decoration: const InputDecoration(labelText: 'URL'),
-                    ),
-                    const SizedBox(height: 10),
-                    Row(
-                      children: [
-                        const Text('Background:'),
-                        const SizedBox(width: 8),
-                        GestureDetector(
-                          onTap: () async {
-                            Color? picked = await showDialog(
-                              context: context,
-                              builder: (context) => _ColorPickerDialog(initialColor: backgroundColor),
-                            );
-                            if (picked != null) {
-                              setState(() {
-                                backgroundColor = picked;
-                              });
-                            }
-                          },
-                          child: Container(
-                            width: 24,
-                            height: 24,
-                            color: backgroundColor,
-                            margin: const EdgeInsets.only(right: 8),
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      TextFormField(
+                        controller: nameController,
+                        decoration: const InputDecoration(labelText: 'Button Name'),
+                        validator: (value) {
+                          if (value == null || value.trim().isEmpty) {
+                            return 'Name cannot be empty';
+                          }
+                          return null;
+                        },
+                      ),
+                      TextFormField(
+                        controller: urlController,
+                        decoration: const InputDecoration(labelText: 'URL'),
+                        validator: (value) {
+                          if (value == null || value.trim().isEmpty) {
+                            return 'URL cannot be empty';
+                          }
+                          final regExp = RegExp(r'^(https?:\/\/)?([\w\-]+\.)+[\w\-]+(\/\S*)?$');
+                          if (!regExp.hasMatch(value.trim())) {
+                            return 'Enter a valid URL';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 10),
+                      Row(
+                        children: [
+                          const Text('Background:'),
+                          const SizedBox(width: 8),
+                          GestureDetector(
+                            onTap: () async {
+                              Color? picked = await showDialog(
+                                context: context,
+                                builder: (context) => _ColorPickerDialog(initialColor: backgroundColor),
+                              );
+                              if (picked != null) {
+                                setState(() {
+                                  backgroundColor = picked;
+                                });
+                              }
+                            },
+                            child: Container(
+                              width: 24,
+                              height: 24,
+                              color: backgroundColor,
+                              margin: const EdgeInsets.only(right: 8),
+                            ),
                           ),
-                        ),
-                        const Text('Foreground:'),
-                        const SizedBox(width: 8),
-                        GestureDetector(
-                          onTap: () async {
-                            Color? picked = await showDialog(
-                              context: context,
-                              builder: (context) => _ColorPickerDialog(initialColor: foregroundColor),
-                            );
-                            if (picked != null) {
-                              setState(() {
-                                foregroundColor = picked;
-                              });
-                            }
-                          },
-                          child: Container(
-                            width: 24,
-                            height: 24,
-                            color: foregroundColor,
+                          const Text('Foreground:'),
+                          const SizedBox(width: 8),
+                          GestureDetector(
+                            onTap: () async {
+                              Color? picked = await showDialog(
+                                context: context,
+                                builder: (context) => _ColorPickerDialog(initialColor: foregroundColor),
+                              );
+                              if (picked != null) {
+                                setState(() {
+                                  foregroundColor = picked;
+                                });
+                              }
+                            },
+                            child: Container(
+                              width: 24,
+                              height: 24,
+                              color: foregroundColor,
+                            ),
                           ),
-                        ),
-                      ],
-                    ),
-                  ],
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
               ),
               actions: [
@@ -207,7 +227,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 ),
                 ElevatedButton(
                   onPressed: () {
-                    if (nameController.text.isNotEmpty && urlController.text.isNotEmpty) {
+                    if (_formKey.currentState!.validate()) {
                       final newEntry = LinkEntry(
                         name: nameController.text,
                         url: urlController.text,
@@ -231,7 +251,6 @@ class _MyHomePageState extends State<MyHomePage> {
       },
     );
   }
-
   Future<void> _launchURL(String url) async {
     if (await canLaunchUrl(Uri.parse(url))) {
       await launchUrl(Uri.parse(url));
