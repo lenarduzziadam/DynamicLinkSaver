@@ -5,6 +5,15 @@ void main() {
   runApp(const MyApp());
 }
 
+class LinkEntry {
+  final String name;
+  final String url;
+  final Color backgroundColor;
+  final Color foregroundColor;
+
+  LinkEntry({required this.name, required this.url, required this.backgroundColor, required this.foregroundColor});
+}
+
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
